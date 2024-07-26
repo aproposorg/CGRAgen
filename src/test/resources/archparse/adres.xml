@@ -1,0 +1,43 @@
+<CGRA>
+    <!-- Declare an ADRES-like PE with four inputs and four outputs without support for 
+         predicated execution. Inputs and outputs are numbered as follows:
+         0 = north, 1 = east, 2 = south, and 3 = west -->
+    <template name="adresPE">
+        <input  name="in0"/>  <input  name="in1"/>  <input  name="in2"/>  <input  name="in3"/>
+        <output name="out0"/> <output name="out1"/> <output name="out2"/> <output name="out3"/>
+
+        <!-- Register file -->
+        <inst name="rf" module="RegisterFile" ninput="1" noutput="2" log2-nregister="2"/>
+
+        <!-- ALU -->
+        <inst name="alu" module="FuncUnit" ops="add sub mul div and or xor shl shra shrl"/>
+        <inst name="const" module="ConstUnit" size="16"/>
+        <connection select-from="this.in0 this.in1 this.in2 this.in3 rf.out0 const.out" to="alu.in_a"/>
+        <connection select-from="this.in0 this.in1 this.in2 this.in3 rf.out1 const.out" to="alu.in_b"/>
+
+        <!-- Output register -->
+        <inst name="rgstr" module="Register"/>
+        <connection from="alu.out" distribute-to="rgstr.in rf.in0"/>
+        <connection from="rgstr.out" distribute-to="this.out0 this.out1 this.out2 this.out3"/>
+    </template>
+
+    <!-- Declare a 4x4 architecture -->
+    <architecture row="4" col="4">
+        <!-- Instantiating PEs -->
+        <pattern row-range="0 3" col-range="0 3">
+            <block module="adresPE"/> <!-- block_0_0 thru block_3_3 -->
+        </pattern>
+
+        <!-- Vertical PE connections -->
+        <pattern row-range="0 2" col-range="0 3">
+            <connection from="(rel 0 0).out2" to="(rel 1 0).in0"/>
+            <connection from="(rel 1 0).out0" to="(rel 0 0).in2"/>
+        </pattern>
+
+        <!-- Horizontal PE connections -->
+        <pattern row-range="0 3" col-range="0 2">
+            <connection from="(rel 0 0).out1" to="(rel 0 1).in3"/>
+            <connection from="(rel 0 1).out3" to="(rel 0 0).in1"/>
+        </pattern>
+    </architecture>
+</CGRA>

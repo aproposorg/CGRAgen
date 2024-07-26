@@ -1,0 +1,52 @@
+digraph dct4p { 
+// from https://www.researchgate.net/publication/224242809_Low_complexity_image_coding_algorithm_for_capsule_endoscopy_with_Bayer_color_filter_array
+// Input
+in0[opcode=input];
+in1[opcode=input];
+in2[opcode=input];
+in3[opcode=input];
+// Layer 1
+add_i0_i3[opcode=add];
+add_i1_i2[opcode=add];
+sub_i2_i1[opcode=sub];
+sub_i3_i0[opcode=sub];
+in0->add_i0_i3[operand=0];
+in3->add_i0_i3[operand=1];
+in1->add_i1_i2[operand=0];
+in2->add_i1_i2[operand=1];
+in1->sub_i2_i1[operand=0];
+in2->sub_i2_i1[operand=1];
+in0->sub_i3_i0[operand=0];
+in3->sub_i3_i0[operand=1];
+// Layer 2
+const2[opcode=const value=1];
+scale2[opcode=shl];
+const3[opcode=const value=1];
+scale3[opcode=shl];
+sub_i2_i1->scale2[operand=0];
+const2->scale2[operand=1];
+sub_i3_i0->scale3[operand=0];
+const3->scale3[operand=1];
+// Layer 4
+add_0_1[opcode=add];
+sub_1_0[opcode=sub];
+add_2_3[opcode=add];
+sub_3_2[opcode=sub];
+add_i0_i3->add_0_1[operand=0];
+add_i1_i2->add_0_1[operand=1];
+add_i0_i3->sub_1_0[operand=0];
+add_i1_i2->sub_1_0[operand=1];
+sub_i2_i1->add_2_3[operand=0];
+scale3->add_2_3[operand=1];
+sub_i3_i0->sub_3_2[operand=0];
+scale2->sub_3_2[operand=1];
+// Output
+output0[opcode=output];
+output1[opcode=output];
+output2[opcode=output];
+output3[opcode=output];
+add_0_1->output0[operand=0];
+add_2_3->output1[operand=0];
+sub_1_0->output2[operand=0];
+sub_3_2->output3[operand=0];
+}

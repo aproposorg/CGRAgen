@@ -1,0 +1,79 @@
+digraph bincount4 {
+// Input
+sum_in[opcode=input]; // 4-bit sum input
+bit_in[opcode=input]; // Boolean input
+// Bit extraction
+mask[opcode=const    value=1]; // Constant 0x1 mask
+shr_os1[opcode=const value=1]; // Constant 1 offset
+shr_os2[opcode=const value=2]; // Constant 2 offset
+shr_os3[opcode=const value=3]; // Constant 3 offset
+b0[opcode=and];
+b1[opcode=and];
+b2[opcode=and];
+b3[opcode=and];
+shr1[opcode=shrl];
+shr2[opcode=shrl];
+shr3[opcode=shrl];
+sum_in->shr1[operand=0];
+sum_in->shr2[operand=0];
+sum_in->shr3[operand=0];
+shr_os1->shr1[operand=1];
+shr_os2->shr2[operand=1];
+shr_os3->shr3[operand=1];
+sum_in->b0[operand=0];
+shr1->b1[operand=0];
+shr2->b2[operand=0];
+shr3->b3[operand=0];
+mask->b0[operand=1];
+mask->b1[operand=1];
+mask->b2[operand=1];
+mask->b3[operand=1];
+// Sum and carry generation
+sum0[opcode=xor];
+sum1[opcode=xor];
+sum2[opcode=xor];
+sum3[opcode=xor];
+cout0[opcode=and];
+cout1[opcode=and];
+cout2[opcode=and];
+b0->sum0[operand=0];
+bit_in->sum0[operand=1];
+b1->sum1[operand=0];
+cout0->sum1[operand=1];
+b2->sum2[operand=0];
+cout1->sum2[operand=1];
+b3->sum3[operand=0];
+cout2->sum3[operand=1];
+b0->cout0[operand=0];
+bit_in->cout0[operand=1];
+b1->cout1[operand=0];
+cout0->cout1[operand=1];
+b2->cout2[operand=0];
+cout1->cout2[operand=1];
+// Shifts
+shl_os1[opcode=const value=1]; // Constant 1 offset
+shl_os2[opcode=const value=2]; // Constant 2 offset
+shl_os3[opcode=const value=3]; // Constant 3 offset
+shl1[opcode=shl];
+shl2[opcode=shl];
+shl3[opcode=shl];
+sum1->shl1[operand=0];
+sum2->shl2[operand=0];
+sum3->shl3[operand=0];
+shl_os1->shl1[operand=1];
+shl_os2->shl2[operand=1];
+shl_os3->shl3[operand=1];
+// Combine result
+psum_1_0[opcode=or];
+psum_3_2[opcode=or];
+psum_3_0[opcode=or];
+sum0->psum_1_0[operand=0];
+shl1->psum_1_0[operand=1];
+shl2->psum_3_2[operand=0];
+shl3->psum_3_2[operand=1];
+psum_1_0->psum_3_0[operand=0];
+psum_3_2->psum_3_0[operand=1];
+// Output
+sum_out[opcode=output];
+psum_3_0->sum_out[operand=0];
+}

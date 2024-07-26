@@ -1,0 +1,12 @@
+digraph sum {
+// Input
+in0[opcode=input];
+// Addition
+sum[opcode=add];
+cst[opcode=const value=1];
+in0->sum[operand=0];
+cst->sum[operand=1];
+// Output
+out[opcode=output];
+sum->out[operand=0];
+}

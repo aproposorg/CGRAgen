@@ -1,0 +1,66 @@
+<CGRA>
+    <!-- Declare a simple PE with four inputs and four outputs. Inputs and outputs are
+            numbered as follows: 0 = north, 1 = east, 2 = south, and 3 = west. -->
+    <template name="simplePE">
+        <input  name="in0"/>  <input  name="in1"/>  <input  name="in2"/>  <input  name="in3"/>
+        <output name="out0"/> <output name="out1"/> <output name="out2"/> <output name="out3"/>
+        <inst name="rgstr" module="Register"/>
+        <inst name="alu" module="FuncUnit" ops="add sub"/>
+        <connection from="alu.out" to="rgstr.in"/>
+        <connection select-from="this.in0 this.in1 this.in2 this.in3 rgstr.out" to="alu.in_a"/>
+        <connection select-from="this.in0 this.in1 this.in2 this.in3 rgstr.out" to="alu.in_b"/>
+        <connection from="rgstr.out" distribute-to="this.out0 this.out1 this.out2 this.out3"/>
+    </template>
+
+    <!-- Declare an input/output component -->
+    <template name="io">
+        <input  name="from_cgra"/>
+        <output name="to_cgra"/>
+        <inst   name="in"  module="InputUnit"/>
+        <inst   name="out" module="OutputUnit"/>
+        <connection from="this.from_cgra" to="out.in"/>
+        <connection from="in.out" to="this.to_cgra"/>
+    </template>
+
+    <!-- Declare a simple 6x6 architecture with mesh-connected PEs -->
+    <architecture row="6" col="6">
+        <!-- Instantiating PEs -->
+        <pattern row-range="1 4" col-range="1 4">
+            <block module="simplePE"/> <!-- block_1_1 thru block_4_4 -->
+        </pattern>
+
+        <!-- Vertical PE connections -->
+        <pattern row-range="1 3" col-range="1 4">
+            <connection from="(rel 0 0).out2" to="(rel 1 0).in0"/>
+            <connection from="(rel 1 0).out0" to="(rel 0 0).in2"/>
+        </pattern>
+
+        <!-- Horizontal PE connections -->
+        <pattern row-range="1 4" col-range="1 3">
+            <connection from="(rel 0 0).out1" to="(rel 0 1).in3"/>
+            <connection from="(rel 0 1).out3" to="(rel 0 0).in1"/>
+        </pattern>
+
+        <!-- Instantiating and connecting IO -->
+        <pattern row-range="0 0" col-range="1 4">
+            <block module="io"/> <!-- block_0_1 thru block_0_4 -->
+            <connection from="(rel 0 0).to_cgra" to="(rel 1 0).in0"/>
+            <connection from="(rel 1 0).out0" to="(rel 0 0).from_cgra"/>
+        </pattern>
+        <pattern row-range="5 5" col-range="1 4">
+            <block module="io"/> <!-- block_5_1 thru block_5_4 -->
+            <connection from="(rel 0 0).to_cgra" to="(rel -1 0).in2"/>
+            <connection from="(rel -1 0).out2" to="(rel 0 0).from_cgra"/>
+        </pattern>
+        <pattern row-range="1 4" col-range="0 0">
+            <block module="io"/> <!-- block_1_0 thru block_4_0 -->
+            <connection from="(rel 0 0).to_cgra" to="(rel 0 1).in3"/>
+            <connection from="(rel 0 1).out3" to="(rel 0 0).from_cgra"/>
+        </pattern>
+        <pattern row-range="1 4" col-range="5 5">
+            <block module="io"/> <!-- block_1_5 thru block_4_5 -->
+            <connection from="(rel 0 0).to_cgra" to="(rel 0 -1).in1"/>
+            <connection from="(rel 0 -1).out1" to="(rel 0 0).from_cgra"/>
+        </pattern>
+    </architecture>
+</CGRA>

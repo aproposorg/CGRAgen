@@ -1,0 +1,35 @@
+<CGRA>
+    <!-- Declare a template PE with four inputs, a shared output, and a simple function unit. 
+         Inputs and outputs are numbered as follows: 0 = north, 1 = east, 2 = south, and 3 = west -->
+    <template name="pe">
+        <input name="in0"/> <input name="in1"/> <input name="in2"/> <input name="in3"/>
+        <output name="out"/>
+        <inst name="const" module="ConstUnit" size="16"/>
+        <inst name="rgstr" module="Register"/>
+        <inst name="func"  module="FuncUnit" ops="sub add"/>
+        <connection select-from="this.in0 this.in1 this.in2 this.in3" to="func.in_a"/>
+        <connection select-from="this.in0 this.in1 this.in2 this.in3" to="func.in_b"/>
+        <connection select-from="const.out func.out" to="rgstr.in"/>
+        <connection from="rgstr.out" to="this.out"/>
+    </template>
+
+    <!-- Declare a simple 2x2 architecture with mesh-interconnected PEs -->
+    <architecture row="2" col="2">
+        <!-- Instantiating PEs -->
+        <pattern row-range="0 1" col-range="0 1">
+            <block module="pe"/>
+        </pattern>
+
+        <!-- Vertical connections -->
+        <pattern row-range="0 0" col-range="0 1">
+            <connection from="(rel 0 0).out" to="(rel 1 0).in0"/>
+            <connection from="(rel 1 0).out" to="(rel 0 0).in2"/>
+        </pattern>
+
+        <!-- Horizontal connections -->
+        <pattern row-range="0 1" col-range="0 0">
+            <connection from="(rel 0 0).out" to="(rel 0 1).in3"/>
+            <connection from="(rel 0 1).out" to="(rel 0 0).in1"/>
+        </pattern>
+    </architecture>
+</CGRA>

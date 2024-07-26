@@ -1,0 +1,78 @@
+digraph conv3x3 {
+// Input
+in0_0[opcode=input];
+in0_1[opcode=input];
+in0_2[opcode=input];
+in1_0[opcode=input];
+in1_1[opcode=input];
+in1_2[opcode=input];
+in2_0[opcode=input];
+in2_1[opcode=input];
+in2_2[opcode=input];
+// Weights
+weight0_0[opcode=const value=3];
+weight0_1[opcode=const value=2];
+weight0_2[opcode=const value=1];
+weight1_0[opcode=const value=2];
+weight1_1[opcode=const value=1];
+weight1_2[opcode=const value=0];
+weight2_0[opcode=const value=1];
+weight2_1[opcode=const value=0];
+weight2_2[opcode=const value=0];
+// Multiplications
+prod0_0[opcode=mul];
+prod0_1[opcode=mul];
+prod0_2[opcode=mul];
+prod1_0[opcode=mul];
+prod1_1[opcode=mul];
+prod1_2[opcode=mul];
+prod2_0[opcode=mul];
+prod2_1[opcode=mul];
+prod2_2[opcode=mul];
+in0_0->prod0_0[operand=0];
+weight0_0->prod0_0[operand=1];
+in0_1->prod0_1[operand=0];
+weight0_1->prod0_1[operand=1];
+in0_2->prod0_2[operand=0];
+weight0_2->prod0_2[operand=1];
+in1_0->prod1_0[operand=0];
+weight1_0->prod1_0[operand=1];
+in1_1->prod1_1[operand=0];
+weight1_1->prod1_1[operand=1];
+in1_2->prod1_2[operand=0];
+weight1_2->prod1_2[operand=1];
+in2_0->prod2_0[operand=0];
+weight2_0->prod2_0[operand=1];
+in2_1->prod2_1[operand=0];
+weight2_1->prod2_1[operand=1];
+in2_2->prod2_2[operand=0];
+weight2_2->prod2_2[operand=1];
+// Summation
+psum_p00_p01[opcode=add];
+psum_p02_p12[opcode=add];
+psum_p21_p22[opcode=add];
+psum_p10_p20[opcode=add];
+prod0_0->psum_p00_p01[operand=0];
+prod0_1->psum_p00_p01[operand=1];
+prod0_2->psum_p02_p12[operand=0];
+prod1_2->psum_p02_p12[operand=1];
+prod2_1->psum_p21_p22[operand=0];
+prod2_2->psum_p21_p22[operand=1];
+prod1_0->psum_p10_p20[operand=0];
+prod2_0->psum_p10_p20[operand=1];
+psum_p00_p12[opcode=add];
+psum_p10_p22[opcode=add];
+psum_p00_p01->psum_p00_p12[operand=0];
+psum_p02_p12->psum_p00_p12[operand=1];
+psum_p21_p22->psum_p10_p22[operand=0];
+psum_p10_p20->psum_p10_p22[operand=1];
+psum_p00_p22[opcode=add];
+psum_p00_p12->psum_p00_p22[operand=0];
+psum_p10_p22->psum_p00_p22[operand=1];
+sum[opcode=add];
+prod1_1->sum[operand=0];
+psum_p00_p22->sum[operand=1];
+// Output
+out[opcode=output];
+sum->out[operand=0];
+}

@@ -1,0 +1,84 @@
+<CGRA>
+    <!-- Declare a CMA-like PE with nine inputs and nine outputs and no internal registers.
+         Inputs and outputs are numbered as follows:
+         0 = north, 1 = east, 2 = south, and 3 = west -->
+    <template name="cmaPE">
+        <!-- Channel A -->
+        <input  name="a_in0"/>  <input  name="a_in1"/>  <input  name="a_in2"/>  <input  name="a_in3"/>
+        <output name="a_out0"/> <output name="a_out1"/> <output name="a_out2"/> <output name="a_out3"/>
+
+        <!-- Channel B (has no north input nor south output) -->
+        <input  name="b_in1"/>  <input  name="b_in2"/>  <input  name="b_in3"/>
+        <output name="b_out0"/> <output name="b_out1"/> <output name="b_out3"/>
+
+        <!-- Direct links -->
+        <input  name="d_in_w"/>  <input  name="d_in_sw"/>
+        <output name="d_out_e"/> <output name="d_out_ne"/>
+
+        <!-- ALU -->
+        <inst name="alu" module="FuncUnit" ops="add sub mul div and or xor shl shra shrl"/>
+        <connection select-from="this.a_in0 this.a_in1 this.a_in2 this.a_in3 this.b_in1 this.b_in2 this.b_in3 this.d_in_w this.d_in_sw" to="alu.in_a"/>
+        <connection select-from="this.a_in0 this.a_in1 this.a_in2 this.a_in3 this.b_in1 this.b_in2 this.b_in3 this.d_in_w this.d_in_sw" to="alu.in_b"/>
+
+        <inst name="rgstr_alu" module="Register"/>
+        <connection from="alu.out" to="rgstr_alu.in"/>
+        <connection from="rgstr_alu.out" distribute-to="this.d_out_e this.d_out_ne"/>
+
+        <!-- Switchbox A -->
+        <inst name="rgstr_ao0" module="Register"/>
+        <connection select-from="this.a_in0 this.a_in1 this.a_in2 this.a_in3 alu.out" to="rgstr_ao0.in"/>
+        <connection from="rgstr_ao0.out" to="this.a_out0"/>
+        <inst name="rgstr_ao1" module="Register"/>
+        <connection select-from="this.a_in0 this.a_in1 this.a_in2 this.a_in3 alu.out" to="rgstr_ao1.in"/>
+        <connection from="rgstr_ao1.out" to="this.a_out1"/>
+        <inst name="rgstr_ao2" module="Register"/>
+        <connection select-from="this.a_in0 this.a_in1 this.a_in2 this.a_in3 alu.out" to="rgstr_ao2.in"/>
+        <connection from="rgstr_ao2.out" to="this.a_out2"/>
+        <inst name="rgstr_ao3" module="Register"/>
+        <connection select-from="this.a_in0 this.a_in1 this.a_in2 this.a_in3 alu.out" to="rgstr_ao3.in"/>
+        <connection from="rgstr_ao3.out" to="this.a_out3"/>
+
+        <!-- Switchbox B -->
+        <inst name="rgstr_bo0" module="Register"/>
+        <connection select-from="this.b_in1 this.b_in2 this.b_in3 alu.out" to="rgstr_bo0.in"/>
+        <connection from="rgstr_bo0.out" to="this.b_out0"/>
+        <inst name="rgstr_bo1" module="Register"/>
+        <connection select-from="this.b_in1 this.b_in2 this.b_in3 alu.out" to="rgstr_bo1.in"/>
+        <connection from="rgstr_bo1.out" to="this.b_out1"/>
+        <inst name="rgstr_bo3" module="Register"/>
+        <connection select-from="this.b_in1 this.b_in2 this.b_in3 alu.out" to="rgstr_bo3.in"/>
+        <connection from="rgstr_bo3.out" to="this.b_out3"/>
+    </template>
+
+    <!-- Declare a 4x4 architecture -->
+    <architecture row="4" col="4">
+        <!-- Instantiating PEs -->
+        <pattern row-range="0 3" col-range="0 3">
+            <block module="cmaPE"/> <!-- block_0_0 thru block_3_3 -->
+        </pattern>
+
+        <!-- Vertical PE connections -->
+        <pattern row-range="0 2" col-range="0 3">
+            <connection from="(rel 0 0).a_out0" to="(rel 1 0).a_in2"/>
+            <connection from="(rel 1 0).a_out2" to="(rel 0 0).a_in0"/>
+
+            <connection from="(rel 0 0).b_out0" to="(rel 1 0).b_in2"/>
+        </pattern>
+
+        <!-- Horizontal PE connections -->
+        <pattern row-range="0 3" col-range="0 2">
+            <connection from="(rel 0 0).a_out1" to="(rel 0 1).a_in3"/>
+            <connection from="(rel 0 1).a_out3" to="(rel 0 0).a_in1"/>
+
+            <connection from="(rel 0 0).b_out1" to="(rel 0 1).b_in3"/>
+            <connection from="(rel 0 1).b_out3" to="(rel 0 0).b_in1"/>
+
+            <connection from="(rel 0 0).d_out_e" to="(rel 0 1).d_in_w"/>
+        </pattern>
+
+        <!-- Diagonal PE connections -->
+        <pattern row-range="0 2" col-range="0 2">
+            <connection from="(rel 0 0).d_out_ne" to="(rel 1 1).d_in_sw"/>
+        </pattern>
+    </architecture>
+</CGRA>

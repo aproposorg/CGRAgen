@@ -1,0 +1,17 @@
+<ErrorInfo>
+  <operation opcode="add">
+    <conf info="32_16_3_1" mred="1.0690992580109082E-7" sdred="5.345826668001763E-7"/>
+    <conf info="32_16_3_2" mred="5.0619696596587715E-6" sdred="3.35669176354525E-5"/>
+    <conf info="32_16_3_3" mred="3.479162724739915E-5" sdred="1.9246928898453142E-4"/>
+  </operation>
+  <operation opcode="sub">
+    <conf info="32_16_3_1" mred="1.0690992580109082E-7" sdred="5.345826668001763E-7"/>
+    <conf info="32_16_3_2" mred="5.0619696596587715E-6" sdred="3.35669176354525E-5"/>
+    <conf info="32_16_3_3" mred="3.479162724739915E-5" sdred="1.9246928898453142E-4"/>
+  </operation>
+  <operation opcode="mul">
+    <conf info="32_16_3_1" mred="2.19450052170167E-5" sdred="3.4396922271806574E-4"/>
+    <conf info="32_16_3_2" mred="6.575409088009909E-4" sdred="0.010327733512031312"/>
+    <conf info="32_16_3_3" mred="0.005179947868207302" sdred="0.08117895923927976"/>
+  </operation>
+</ErrorInfo>

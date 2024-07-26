@@ -1,0 +1,84 @@
+<CGRA>
+    <!-- Declare a HyCUBE-like PE with four inputs, four outputs, a crossbar, and internal buffering 
+         without support for predicated execution. Inputs and outputs are numbered as follows:
+         0 = north, 1 = east, 2 = south, and 3 = west -->
+    <template name="hycubePE">
+        <input  name="in0"/>  <input  name="in1"/>  <input  name="in2"/>  <input  name="in3"/>
+        <output name="out0"/> <output name="out1"/> <output name="out2"/> <output name="out3"/>
+
+        <!-- Pipeline registers -->
+        <inst name="reg0" module="Register"/> <inst name="reg1" module="Register"/>
+        <inst name="reg2" module="Register"/> <inst name="reg3" module="Register"/>
+        <wire name="bp0"/> <wire name="bp1"/> <wire name="bp2"/> <wire name="bp3"/>
+        <connection from="this.in0" to="reg0.in"/>
+        <connection from="this.in1" to="reg1.in"/>
+        <connection from="this.in2" to="reg2.in"/>
+        <connection from="this.in3" to="reg3.in"/>
+        <connection select-from="this.in0 reg0.out" to="bp0"/>
+        <connection select-from="this.in1 reg1.out" to="bp1"/>
+        <connection select-from="this.in2 reg2.out" to="bp2"/>
+        <connection select-from="this.in3 reg3.out" to="bp3"/>
+
+        <!-- ALU -->
+        <inst name="reg_op0" module="Register"/> <inst name="reg_op1" module="Register"/>
+        <inst name="reg_res" module="Register"/>
+        <inst name="const"   module="ConstUnit" size="16"/>
+        <inst name="alu"     module="FuncUnit" ops="add sub mul div and or xor shl shra shrl"/>
+        <connection from="reg_op0.out" to="alu.in_a"/> <connection from="reg_op1.out" to="alu.in_b"/>
+        <connection from="alu.out"     to="reg_res.in"/>
+
+        <!-- Crossbar -->
+        <connection select-from="bp0 bp1 bp2 bp3 alu.out reg_res.out" to="reg_op0.in"/>
+        <connection select-from="bp0 bp1 bp2 bp3 alu.out reg_res.out" to="reg_op1.in"/>
+        <connection select-from="bp0 bp1 bp2 bp3 alu.out reg_res.out const.out" to="this.out0"/>
+        <connection select-from="bp0 bp1 bp2 bp3 alu.out reg_res.out const.out" to="this.out1"/>
+        <connection select-from="bp0 bp1 bp2 bp3 alu.out reg_res.out const.out" to="this.out2"/>
+        <connection select-from="bp0 bp1 bp2 bp3 alu.out reg_res.out const.out" to="this.out3"/>
+    </template>
+
+    <!-- Declare a global data memory in the shape of a register file (like ADRES' one) -->
+    <template name="globalRF">
+        <input  name="in0"/>  <input  name="in1"/>  <input  name="in2"/>  <input  name="in3"/>
+        <output name="out0"/> <output name="out1"/> <output name="out2"/> <output name="out3"/>
+        <inst   name="rf" module="RegisterFile" ninput="4" noutput="4" log2-nregister="3"/>
+        <connection from="this.in0" to="rf.in0"/>
+        <connection from="this.in1" to="rf.in1"/>
+        <connection from="this.in2" to="rf.in2"/>
+        <connection from="this.in3" to="rf.in3"/>
+        <connection from="rf.out0"  to="this.out0"/>
+        <connection from="rf.out1"  to="this.out1"/>
+        <connection from="rf.out2"  to="this.out2"/>
+        <connection from="rf.out3"  to="this.out3"/>
+    </template>
+
+    <!-- Declare a 4x5 architecture with mesh-interconnected PEs and memory in the first column -->
+    <architecture row="4" col="5">
+        <!-- Instantiating the register file -->
+        <pattern row-range="0 0" col-range="0 0">
+            <block module="globalRF"/> <!-- block_0_0 -->
+        </pattern>
+
+        <!-- Instantiating PEs -->
+        <pattern row-range="0 3" col-range="1 4">
+            <block module="hycubePE"/> <!-- block_0_1 thru block_3_4 -->
+        </pattern>
+
+        <!-- Register file connections -->
+        <pattern row-range="0 3" col-range="1 1" row-counter="row">
+            <connection from="(rel -(row) -1).out(row)" to="(rel 0 0).in3"/>
+            <connection from="(rel 0 0).out3" to="(rel -(row) -1).in(row)"/>
+        </pattern>
+
+        <!-- Vertical connections -->
+        <pattern row-range="0 3" col-range="1 4" wrap-around="1">
+            <connection from="(rel 0 0).out2" to="(rel 1 0).in0"/>
+            <connection from="(rel 1 0).out0" to="(rel 0 0).in2"/>
+        </pattern>
+
+        <!-- Horizontal connections -->
+        <pattern row-range="0 3" col-range="1 3">
+            <connection from="(rel 0 0).out1" to="(rel 0 1).in3"/>
+            <connection from="(rel 0 1).out3" to="(rel 0 0).in1"/>
+        </pattern>
+    </architecture>
+</CGRA>

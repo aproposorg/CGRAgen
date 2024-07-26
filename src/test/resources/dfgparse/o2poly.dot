@@ -1,0 +1,21 @@
+digraph o2poly {
+// Input
+in[opcode=input];
+// Roots
+root0[opcode=const value=4];
+root1[opcode=const value=1];
+// Subtractions
+diff0[opcode=sub];
+diff1[opcode=sub];
+in->diff0[operand=0];
+in->diff1[operand=0];
+root0->diff0[operand=1];
+root1->diff1[operand=1];
+// Product
+prod[opcode=mul];
+diff0->prod[operand=0];
+diff1->prod[operand=1];
+// Output
+out[opcode=output];
+prod->out[operand=0];
+}

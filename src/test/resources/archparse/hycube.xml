@@ -1,0 +1,67 @@
+<CGRA>
+    <!-- Declare a HyCUBE-like PE with four inputs, four outputs, a crossbar, and internal buffering 
+         without support for predicated execution. Inputs and outputs are numbered as follows:
+         0 = north, 1 = east, 2 = south, and 3 = west -->
+    <template name="hycubePE">
+        <input  name="in0"/>  <input  name="in1"/>  <input  name="in2"/>  <input  name="in3"/>
+        <output name="out0"/> <output name="out1"/> <output name="out2"/> <output name="out3"/>
+
+        <!-- Pipeline registers -->
+        <inst name="reg0" module="Register"/> <inst name="reg1" module="Register"/>
+        <inst name="reg2" module="Register"/> <inst name="reg3" module="Register"/>
+        <wire name="bp0"/> <wire name="bp1"/> <wire name="bp2"/> <wire name="bp3"/>
+        <connection from="this.in0" to="reg0.in"/>
+        <connection from="this.in1" to="reg1.in"/>
+        <connection from="this.in2" to="reg2.in"/>
+        <connection from="this.in3" to="reg3.in"/>
+        <connection select-from="this.in0 reg0.out" to="bp0"/>
+        <connection select-from="this.in1 reg1.out" to="bp1"/>
+        <connection select-from="this.in2 reg2.out" to="bp2"/>
+        <connection select-from="this.in3 reg3.out" to="bp3"/>
+
+        <!-- ALU -->
+        <inst name="reg_op0" module="Register"/> <inst name="reg_op1" module="Register"/>
+        <inst name="reg_res" module="Register"/>
+        <inst name="const"   module="ConstUnit" size="16"/>
+        <inst name="alu"     module="FuncUnit" ops="add sub mul div and or xor shl shra shrl"/>
+        <connection select-from="const.out reg_op0.out" to="alu.in_a"/>
+        <connection select-from="const.out reg_op1.out" to="alu.in_b"/>
+        <connection from="alu.out" to="reg_res.in"/>
+
+        <!-- Crossbar -->
+        <connection select-from="bp0 bp1 bp2 bp3 alu.out reg_res.out" to="reg_op0.in"/>
+        <connection select-from="bp0 bp1 bp2 bp3 alu.out reg_res.out" to="reg_op1.in"/>
+        <inst name="rgstr_o0" module="Register"/>
+        <connection select-from="bp0 bp1 bp2 bp3 reg_res.out" to="rgstr_o0.in"/>
+        <connection from="rgstr_o0.out" to="this.out0"/>
+        <inst name="rgstr_o1" module="Register"/>
+        <connection select-from="bp0 bp1 bp2 bp3 reg_res.out" to="rgstr_o1.in"/>
+        <connection from="rgstr_o1.out" to="this.out1"/>
+        <inst name="rgstr_o2" module="Register"/>
+        <connection select-from="bp0 bp1 bp2 bp3 reg_res.out" to="rgstr_o2.in"/>
+        <connection from="rgstr_o2.out" to="this.out2"/>
+        <inst name="rgstr_o3" module="Register"/>
+        <connection select-from="bp0 bp1 bp2 bp3 reg_res.out" to="rgstr_o3.in"/>
+        <connection from="rgstr_o3.out" to="this.out3"/>
+    </template>
+
+    <!-- Declare an empty 4x4 architecture -->
+    <architecture row="4" col="4">
+        <!-- Instantiating PEs -->
+        <pattern row-range="0 3" col-range="0 3">
+            <block module="hycubePE"/> <!-- block_0_0 thru block_3_3 -->
+        </pattern>
+
+        <!-- Vertical PE connections -->
+        <pattern row-range="0 2" col-range="0 3">
+            <connection from="(rel 0 0).out2" to="(rel 1 0).in0"/>
+            <connection from="(rel 1 0).out0" to="(rel 0 0).in2"/>
+        </pattern>
+
+        <!-- Horizontal PE connections -->
+        <pattern row-range="0 3" col-range="0 2">
+            <connection from="(rel 0 0).out1" to="(rel 0 1).in3"/>
+            <connection from="(rel 0 1).out3" to="(rel 0 0).in1"/>
+        </pattern>
+    </architecture>
+</CGRA>

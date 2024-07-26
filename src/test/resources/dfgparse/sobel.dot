@@ -1,0 +1,70 @@
+digraph sobel {
+// Input
+in0_0[opcode=input];
+in0_1[opcode=input];
+in0_2[opcode=input];
+in1_0[opcode=input];
+// in1_1 never used
+in1_2[opcode=input];
+in2_0[opcode=input];
+in2_1[opcode=input];
+in2_2[opcode=input];
+// Gx computation
+Gx_const[opcode=const value=1]; // Constant 1
+scale1_0[opcode=shl];
+scale1_2[opcode=shl];
+in1_0->scale1_0[operand=0];
+Gx_const->scale1_0[operand=1];
+in1_2->scale1_2[operand=0];
+Gx_const->scale1_2[operand=1];
+psum_p00_p02[opcode=sub];
+psum_p10_p12[opcode=sub];
+psum_p20_p22[opcode=sub];
+in0_2->psum_p00_p02[operand=0];
+in0_0->psum_p00_p02[operand=1];
+scale1_2->psum_p10_p12[operand=0];
+scale1_0->psum_p10_p12[operand=1];
+in2_2->psum_p20_p22[operand=0];
+in2_0->psum_p20_p22[operand=1];
+// Gy computation
+Gy_const[opcode=const value=1]; // Constant 1
+scale0_1[opcode=shl];
+scale2_1[opcode=shl];
+in0_1->scale0_1[operand=0];
+Gy_const->scale0_1[operand=1];
+in2_1->scale2_1[operand=0];
+Gy_const->scale2_1[operand=1];
+psum_p00_p20[opcode=sub];
+psum_p01_p21[opcode=sub];
+psum_p02_p22[opcode=sub];
+in0_0->psum_p00_p20[operand=0];
+in2_0->psum_p00_p20[operand=1];
+scale0_1->psum_p01_p21[operand=0];
+scale2_1->psum_p01_p21[operand=1];
+in0_2->psum_p02_p22[operand=0];
+in2_2->psum_p02_p22[operand=1];
+// Summation
+xx_sum[opcode=add];
+yy_sum[opcode=add];
+Gx_sum[opcode=add];
+Gy_sum[opcode=add];
+psum_p00_p02->xx_sum[operand=0];
+psum_p10_p12->xx_sum[operand=1];
+psum_p00_p20->yy_sum[operand=0];
+psum_p01_p21->yy_sum[operand=1];
+xx_sum->Gx_sum[operand=0];
+psum_p20_p22->Gx_sum[operand=1];
+yy_sum->Gy_sum[operand=0];
+psum_p02_p22->Gy_sum[operand=1];
+// Combining results
+shamt[opcode=const value=4]; // Assuming 8-bit pixel values, the result may be 12 bits
+sum[opcode=add];
+shift[opcode=shra];
+Gx_sum->sum[operand=0];
+Gy_sum->sum[operand=1];
+sum->shift[operand=0];
+shamt->shift[operand=1];
+// Output
+out[opcode=output];
+shift->out[operand=0];
+}

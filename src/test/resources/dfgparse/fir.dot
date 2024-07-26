@@ -1,0 +1,51 @@
+digraph fir {
+// Input
+in0[opcode=input];
+in1[opcode=input];
+in2[opcode=input];
+in3[opcode=input];
+in4[opcode=input];
+// Weights
+weight0[opcode=const value=1];
+weight1[opcode=const value=2];
+weight2[opcode=const value=3];
+weight3[opcode=const value=2];
+weight4[opcode=const value=1];
+// Shifts and multiplications
+scl0[opcode=shra];
+scl1[opcode=mul];
+scl2[opcode=mul];
+scl3[opcode=mul];
+scl4[opcode=shra];
+in0->scl0[operand=0];
+weight0->scl0[operand=1];
+in1->scl1[operand=0];
+weight1->scl1[operand=1];
+in2->scl2[operand=0];
+weight2->scl2[operand=1];
+in3->scl3[operand=0];
+weight3->scl3[operand=1];
+in4->scl4[operand=0];
+weight4->scl4[operand=1];
+// Sums
+sum1[opcode=add];
+sum2[opcode=add];
+sum3[opcode=add];
+sum4[opcode=add];
+scl0->sum1[operand=0];
+scl1->sum1[operand=1];
+sum1->sum2[operand=0];
+scl2->sum2[operand=1];
+sum2->sum3[operand=0];
+scl3->sum3[operand=1];
+sum3->sum4[operand=0];
+scl4->sum4[operand=1];
+// Division
+weighto[opcode=const value=3];
+oscl[opcode=shra];
+sum4->oscl[operand=0];
+weighto->oscl[operand=1];
+// Output
+out[opcode=output approx=0.1];
+oscl->out[operand=0];
+}

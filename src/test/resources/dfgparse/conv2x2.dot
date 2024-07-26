@@ -1,0 +1,38 @@
+digraph conv2x2 {
+// Input
+in0_0[opcode=input];
+in0_1[opcode=input];
+in1_0[opcode=input];
+in1_1[opcode=input];
+// Weights
+weight0_0[opcode=const value=3];
+weight0_1[opcode=const value=-1];
+weight1_0[opcode=const value=-1];
+weight1_1[opcode=const value=3];
+// Multiplications
+prod0_0[opcode=mul];
+prod0_1[opcode=mul];
+prod1_0[opcode=mul];
+prod1_1[opcode=mul];
+in0_0->prod0_0[operand=0];
+weight0_0->prod0_0[operand=1];
+in0_1->prod0_1[operand=0];
+weight0_1->prod0_1[operand=1];
+in1_0->prod1_0[operand=0];
+weight1_0->prod1_0[operand=1];
+in1_1->prod1_1[operand=0];
+weight1_1->prod1_1[operand=1];
+// Summation
+psum_p00_p01[opcode=add];
+psum_p10_p11[opcode=add];
+prod0_0->psum_p00_p01[operand=0];
+prod0_1->psum_p00_p01[operand=1];
+prod1_0->psum_p10_p11[operand=0];
+prod1_1->psum_p10_p11[operand=1];
+sum[opcode=add];
+psum_p00_p01->sum[operand=0];
+psum_p10_p11->sum[operand=1];
+// Output
+out[opcode=output approx=.01];
+sum->out[operand=0];
+}

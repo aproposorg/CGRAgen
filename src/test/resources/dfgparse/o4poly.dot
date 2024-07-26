@@ -1,0 +1,35 @@
+digraph o4poly {
+// Input
+in[opcode=input];
+// Roots
+root0[opcode=const value=5];
+root1[opcode=const value=7];
+root2[opcode=const value=12];
+root3[opcode=const value=72];
+// Subtractions
+diff0[opcode=sub];
+diff1[opcode=sub];
+diff2[opcode=sub];
+diff3[opcode=sub];
+in->diff0[operand=0];
+in->diff1[operand=0];
+in->diff2[operand=0];
+in->diff3[operand=0];
+root0->diff0[operand=1];
+root1->diff1[operand=1];
+root2->diff2[operand=1];
+root3->diff3[operand=1];
+// Product
+pprod_d0_d1[opcode=mul];
+pprod_d2_d3[opcode=mul];
+diff0->pprod_d0_d1[operand=0];
+diff1->pprod_d0_d1[operand=1];
+diff2->pprod_d2_d3[operand=0];
+diff3->pprod_d2_d3[operand=1];
+prod[opcode=mul];
+pprod_d0_d1->prod[operand=0];
+pprod_d2_d3->prod[operand=1];
+// Output
+out[opcode=output approx=.01];
+prod->out[operand=0];
+}
