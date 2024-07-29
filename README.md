@@ -1,7 +1,5 @@
 # CGRAgen
 
-[![Actions Status](https://github.com/aproposorg/cgragen/actions/workflows/ci.yml/badge.svg)](https://github.com/aproposorg/cgragen/actions)
-
 CGRAgen is a generic CGRA architecture modeling, hardware generation, and application mapping flow that lets developers more easily perform design space exploration of CGRA architectures. Its key components are modeled after [CGRA-ME](https://cgra-me.ece.utoronto.ca/) version 1.0 but has several differences. The following provides a brief overview of CGRAgen's capabilities.
 
 If you have used CGRAgen in a research project, please cite it as:
@@ -159,6 +157,7 @@ CGRAgen is provided under the MIT license. See [LICENSE](./LICENSE) for more det
 
 Some ideas for where to extend CGRAgen follow below:
 
+- Solid regression test system (based on the included Scalatests)
 - Bit-width understanding between architecture and application
 - Simple math and data size adjustments to template-based sub-modules
 - Conditional constructs (like `<if> [<elsif>] <else>`) and/or loops (like `<for counter="%COUNTER_NAME%" range="%RANGE%">`) in the ADL
