@@ -26,6 +26,58 @@ import System.nanoTime
  */
 private[mapping] final class HeuristicMapper(cgra: CGRA)
   (implicit conf: cgragen.Parameters) extends Mapper(cgra) {
+  /** Fields start ***********************************************************/
+  // Start seed for randomization
+  val StartSeed = conf.MapperArgs.getOrElse("StartSeed", "42").toInt
+
+  // Number of seeds for randomization
+  val NSeeds = conf.MapperArgs.getOrElse("NSeeds", "5").toInt
+
+  // Maximum number of placement options to consider (-1 means infinite)
+  val MaxNPlaces = {
+    val confN = conf.MapperArgs.getOrElse("MaxNPlaces", "-1").toInt
+    assert(-1 <= confN && confN <= Int.MaxValue)
+    if (confN == -1) Int.MaxValue else confN
+  }
+
+  // Maximum number of routing options to consider per placement option 
+  // (-1 means infinite)
+  val MaxNRoutes = {
+    val confN = conf.MapperArgs.getOrElse("MaxNRoutes", "-1").toInt
+    assert(-1 <= confN && confN <= Int.MaxValue)
+    if (confN == -1) Int.MaxValue else confN
+  }
+
+  // Maximum number of level-1 recoveries to consider
+  val MaxNL1Recs = {
+    val confN = conf.MapperArgs.getOrElse("MaxNL1Recs", "-1").toInt
+    assert(-1 <= confN && confN <= Int.MaxValue)
+    if (confN == -1) Int.MaxValue else confN
+  }
+
+  // Maximum number of level-2 recoveries to consider
+  val MaxNL2Recs = {
+    val confN = conf.MapperArgs.getOrElse("MaxNL2Recs", "-1").toInt
+    assert(-1 <= confN && confN <= Int.MaxValue)
+    if (confN == -1) Int.MaxValue else confN
+  }
+
+  // Maximum number of random recoveries to consider
+  val MaxNRandRecs = {
+    val confN = conf.MapperArgs.getOrElse("MaxNRandRecs", "-1").toInt
+    assert(-1 <= confN && confN <= Int.MaxValue)
+    if (confN == -1) Int.MaxValue else confN
+  }
+
+  // Probability of performing a random recovery instead of either a level-1 
+  // or level-2 recovery
+  val ProbRandRec = {
+    val confProb = conf.MapperArgs.getOrElse("ProbRandRecs", "0").toDouble
+    assert(0.0 <= confProb && confProb <= 1.0)
+    confProb
+  }
+  /** Fields end *************************************************************/
+
   /** Various other methods start ********************************************/
   /** Find all free function unit nodes compatible with a given DFG node
    * @param dfgNode the DFG node
@@ -100,8 +152,7 @@ private[mapping] final class HeuristicMapper(cgra: CGRA)
       visited.toMap
     }
 
-    // Filter the function unit nodes by connectivity and sort them according 
-    // to their collective distance
+    // Filter the function unit nodes by connectivity and sort them randomly
     val srcDsts = mutable.HashMap.empty[MRRGNode, Map[MRRGNode, Int]]
     val fuOpts = freeFUs
       .filter { fuNode =>
@@ -116,11 +167,9 @@ private[mapping] final class HeuristicMapper(cgra: CGRA)
     val rands = Seq.fill(fuOpts.size) { rng.nextInt() }
     val res = fuOpts.zip(rands)
       .sortBy { case (fuNode, rand) =>
-        val cost = predMrrgNodes.map(predNode => srcDsts(predNode)(fuNode)).sum +
-                   succMrrgNodes.map(succNode => srcDsts(fuNode)(succNode)).sum
         val sprt = isApproximable(dfgNode.opcode) && fuNode.parent
           .asInstanceOf[AbstractFunctionUnit].approx
-        (cost, !sprt, rand) }
+        (!sprt, rand) }
       .map(_._1)
 
     if (conf.MapperDebug) {
@@ -242,7 +291,7 @@ private[mapping] final class HeuristicMapper(cgra: CGRA)
         .collect { case (edge, route) if edge.src.opcode == OpConst => delay(route) }
         .toSet // okay iff {}, {0}, {c}, or {0, c}
       val otherDelays = comb
-        .collect { case (edge, route) if edge.src.opcode != OpConst && edge.src.opcode != OpInput => delay(route) }
+        .collect { case (edge, route) if edge.src.opcode != OpConst => delay(route) }
         .toSet // okay iff {} or {c}
 
       val othersOk = otherDelays.size <= 1
@@ -349,12 +398,17 @@ private[mapping] final class HeuristicMapper(cgra: CGRA)
    * @param start the start time of the mapping algorithm in nanoseconds
    * @param limit the time limit for the mapping procedure in seconds
    * @param rng the RNG to use in decision making
+   * @param l1recs the nodes that have caused L1 recoveries
+   * @param l2recs the nodes that have caused L2 recoveries
+   * @param randrecs the nodes that have caused random recoveries
    * @return a tuple of a mapping of `dfg` to `mrrg`, if any, and a map of 
    *         counts of how many iterations of recovery have been executed 
    *         per node in `dfg`
    */
   private def _pathSeeker(dfg: DFG, mrrg: MRRG, queue: Seq[DFGNode], mapping: Mapping,
-    start: Long, limit: Double, rng: Random): (Option[Mapping], Map[DFGNode, Int]) = {
+    start: Long, limit: Double, rng: Random, l1recs: Set[DFGNode] = Set.empty[DFGNode],
+    l2recs: Set[DFGNode] = Set.empty[DFGNode], randrecs: Set[DFGNode] = Set.empty[DFGNode]
+  ): (Option[Mapping], Map[DFGNode, Int]) = {
     if (conf.MapperDebug && queue.nonEmpty) {
       print("[DEBUG] Running PathSeeker with queue ")
       if (queue.size > 3)
@@ -381,10 +435,12 @@ private[mapping] final class HeuristicMapper(cgra: CGRA)
 
         // Use these data to find the suitable function units and routes
         val connFUs  = _placement(dfgNode, predDfgEdges, succDfgEdges, mrrg, mapping, rng)
+          .take(MaxNPlaces)
         val routCmbs = connFUs.view
           .flatMap {
             case fuNode if (predDfgEdges ++ succDfgEdges).nonEmpty =>
               _routing(dfgNode, fuNode, predDfgEdges, succDfgEdges, mrrg, mapping, rng)
+                .take(MaxNRoutes)
                 .map(routes => (fuNode, routes))
             case fuNode =>
               Seq((fuNode, Map.empty[DFGEdge, Route])) }
@@ -399,16 +455,44 @@ private[mapping] final class HeuristicMapper(cgra: CGRA)
               updMapping.mapEdge(dfgEdge, route) }
 
             // Recursively call the mapping function on the updated mapping
-            val (res, cnts) = _pathSeeker(dfg, mrrg, queue.tail, updMapping, start, limit, rng) 
+            val (res, cnts) = _pathSeeker(
+              dfg, mrrg, queue.tail, updMapping, start, limit, rng, l1recs, l2recs, randrecs)
             cnts.foreach { case (node, cnt) =>
               reCnts(node) = reCnts.getOrElse(node, 0) + cnt }
 
             res }
           .collectFirst { case Some(updMapping) => updMapping }
 
-        // If the recursive call failed, try a PathSeeker-like level-1 recovery
-        val l1RecMapping = recMapping match {
-          case None if !overdue =>
+        // If the recursive call failed, sometimes try a random recovery
+        val rcvrdMapping = recMapping match {
+          case None if !overdue && rng.nextDouble() < ProbRandRec && randrecs.size < MaxNRandRecs =>
+            reCnts(dfgNode) = reCnts.getOrElse(dfgNode, 0) + 1
+
+            // Create an updated mapping with the randomly chosen node unmapped
+            val randNode = {
+              val mppdNodes = mapping.nodeMap.keys.toSeq
+              val randInd   = rng.nextInt(mppdNodes.size)
+              mppdNodes(randInd)
+            }
+            val randMapping = Mapping.from(mapping)
+            randMapping.unmapNode(randNode)
+
+            // Recursively call the mapping function on the updated mapping, 
+            // attempting the problematic and the randomly chosen nodes first
+            val updQueue = Seq(dfgNode, randNode) ++ queue.tail
+            val (res, cnts) = _pathSeeker(
+              dfg, mrrg, updQueue, randMapping, start, limit, rng, l1recs, l2recs, randrecs)
+            cnts.foreach { case (node, cnt) =>
+              reCnts(node) = reCnts.getOrElse(node, 0) + cnt }
+
+            res
+
+          case _ => recMapping
+        }
+
+        // PathSeeker-like level-1 recovery
+        val l1RecMapping = rcvrdMapping match {
+          case None if !overdue && !l1recs(dfgNode) && !l2recs(dfgNode) && l1recs.size < MaxNL1Recs =>
             reCnts(dfgNode) = reCnts.getOrElse(dfgNode, 0) + 1
 
             // Create an updated mapping with all mapped predecessors and 
@@ -420,22 +504,65 @@ private[mapping] final class HeuristicMapper(cgra: CGRA)
             nghbrs.foreach(l1Mapping.unmapNode(_))
             if (conf.MapperDebug) {
               print(s"[DEBUG] Failed to map DFG node (${dfgNode}), unmapping ")
-              println(s"neighbor nodes (${nghbrs.mkString("[", ", ", "]")})")
+              println(s"level-1 neighbor nodes (${nghbrs.mkString("[", ", ", "]")})")
             }
 
             // Recursively call the mapping function on the updated mapping, 
             // attempting to map the problematic node first
             val updQueue = Seq(dfgNode) ++ nghbrs ++ queue.tail
-            val (res, cnts) = _pathSeeker(dfg, mrrg, updQueue, l1Mapping, start, limit, rng)
+            val (res, cnts) = _pathSeeker(
+              dfg, mrrg, updQueue, l1Mapping, start, limit, rng, l1recs + dfgNode, l2recs, randrecs)
             cnts.foreach { case (node, cnt) =>
               reCnts(node) = reCnts.getOrElse(node, 0) + cnt }
 
             res
 
-          case _ => recMapping
+          case _ => rcvrdMapping
         }
 
-        (l1RecMapping, reCnts.toMap)
+        // PathSeeker-like level-2 recovery
+        val l2RecMapping = l1RecMapping match {
+          case None if !overdue && !l2recs(dfgNode) && l2recs.size < MaxNL2Recs =>
+            reCnts(dfgNode) = reCnts.getOrElse(dfgNode, 0) + 1
+
+            // Create an updated mapping with all mapped predecessors and 
+            // successors, and their predecessors and successors, unmapped
+            val predDfgNodes = {
+              val l1Preds = predDfgEdges.map(_.src)
+              val l2Preds = mapping.edgeMap.keys
+                .filter(edge => l1Preds.contains(edge.snk))
+                .map(_.src)
+              l1Preds ++ l2Preds
+            }
+            val succDfgNodes = {
+              val l1Succs = succDfgEdges.map(_.snk)
+              val l2Succs = mapping.edgeMap.keys
+                .filter(edge => l1Succs.contains(edge.src))
+                .map(_.snk)
+              l2Succs ++ l1Succs
+            }
+            val l2Mapping = Mapping.from(mapping)
+            val nghbrs = succDfgNodes ++ predDfgNodes
+            nghbrs.foreach(l2Mapping.unmapNode(_))
+            if (conf.MapperDebug) {
+              print(s"[DEBUG] Failed to map DFG node (${dfgNode}), unmapping ")
+              print(s"level-2 neighbor nodes (${nghbrs.mkString("[", ", ", "]")})")
+            }
+
+            // Recursively call the mapping function on the updated mapping, 
+            // attempting to map the problematic node first
+            val updQueue = Seq(dfgNode) ++ nghbrs ++ queue.tail
+            val (res, cnts) = _pathSeeker(
+              dfg, mrrg, updQueue, l2Mapping, start, limit, rng, l1recs, l2recs + dfgNode, randrecs)
+            cnts.foreach { case (node, cnt) =>
+              reCnts(node) = reCnts.getOrElse(node, 0) + cnt }
+
+            res
+
+          case _ => l1RecMapping
+        }
+
+        (l2RecMapping, reCnts.toMap)
 
       case None => // mapping complete
         (Some(mapping), Map.empty[DFGNode, Int])
@@ -449,7 +576,7 @@ private[mapping] final class HeuristicMapper(cgra: CGRA)
   def mapGraph(dfg: DFG, mrrg: MRRG, limit: Double): Option[Mapping] = {
     // Generate an infinite sequence of seeds for randomization in the algorithm
     val seeds = {
-      val rng = new Random(conf.MapperArgs.getOrElse("StartSeed", "42").toInt)
+      val rng = new Random(StartSeed)
       def loop(num: Int): LazyList[Int] = num #:: loop(rng.nextInt())
       loop(rng.nextInt())
     }
@@ -464,7 +591,7 @@ private[mapping] final class HeuristicMapper(cgra: CGRA)
     val cmpnts = components(dfg)
       .map(cmp => (cmp, topologicalSort(cmp).reverse))
     val mappingOpt = seeds
-      .take(conf.MapperArgs.getOrElse("NSeeds", "5").toInt)
+      .take(NSeeds)
       .takeWhile(_ => !overdue)
       .map { seed =>
         // Map the DFG's components one by one
